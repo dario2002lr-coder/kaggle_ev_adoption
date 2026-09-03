@@ -1,4 +1,5 @@
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
 import pandas as pd
 
 
@@ -19,3 +20,18 @@ def split_train_validation(
     )
 
     return X_train, X_val, y_train, y_val
+
+def create_stratified_kfold(
+    n_splits: int = 5,
+    shuffle: bool = True,
+    random_state: int = 42,
+) -> StratifiedKFold:
+    """
+    Create a stratified K-fold cross-validation splitter.
+    """
+
+    return StratifiedKFold(
+        n_splits=n_splits,
+        shuffle=shuffle,
+        random_state=random_state,
+    )
