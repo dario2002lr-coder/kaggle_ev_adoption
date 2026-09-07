@@ -67,6 +67,19 @@ def add_charging_home_ratio(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_charging_per_commute(df: pd.DataFrame) -> pd.DataFrame:
+    """Add total charging stations relative to daily commute."""
+    df = df.copy()
+
+    if "Charging_per_Commute" not in df.columns:
+        df["Charging_per_Commute"] = np.divide(
+            df["Charging_Stations_Total"],
+            df["Daily_Commute_km"],
+        )
+
+    return df
+
+
 # =============================================================================
 # Income features
 # =============================================================================
@@ -314,12 +327,53 @@ def add_charging_x_home_charging(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_income_x_environmental(df: pd.DataFrame) -> pd.DataFrame:
+    """Add income × environmental concern."""
+    df = df.copy()
+
+    if "Income_x_Environmental" not in df.columns:
+        df["Income_x_Environmental"] = (
+            df["Annual_Income_USD"]
+            * df["Environmental_Concern_Level"]
+        )
+
+    return df
+
+
+def add_environmental_x_charging(df: pd.DataFrame) -> pd.DataFrame:
+    """Add environmental concern × total charging infrastructure."""
+    df = df.copy()
+
+    if "Environmental_x_Charging" not in df.columns:
+        df["Environmental_x_Charging"] = (
+            df["Environmental_Concern_Level"]
+            * df["Charging_Stations_Total"]
+        )
+
+    return df
+
+
+def add_commute_per_car(df: pd.DataFrame) -> pd.DataFrame:
+    """Add daily commute relative to the number of cars owned."""
+    df = df.copy()
+
+    if "Commute_per_Car" not in df.columns:
+        df["Commute_per_Car"] = np.divide(
+            df["Daily_Commute_km"],
+            df["Number_of_Cars_Owned"],
+        )
+
+    return df
+
+
 # =============================================================================
 # Feature registry
 # =============================================================================
 
 FEATURES = {
+    # -------------------------------------------------------------------------
     # Charging
+    # -------------------------------------------------------------------------
     "charging_total": FeatureDefinition(
         function=add_charging_total,
     ),
@@ -330,8 +384,14 @@ FEATURES = {
         function=add_charging_home_ratio,
         requires=("charging_total",),
     ),
+    "charging_per_commute": FeatureDefinition(
+        function=add_charging_per_commute,
+        requires=("charging_total",),
+    ),
 
+    # -------------------------------------------------------------------------
     # Income
+    # -------------------------------------------------------------------------
     "log_income": FeatureDefinition(
         function=add_log_income,
     ),
@@ -341,8 +401,16 @@ FEATURES = {
     "income_x_cars": FeatureDefinition(
         function=add_income_x_cars,
     ),
+    "income_x_subsidy": FeatureDefinition(
+        function=add_income_x_subsidy,
+    ),
+    "income_x_environmental": FeatureDefinition(
+        function=add_income_x_environmental,
+    ),
 
+    # -------------------------------------------------------------------------
     # Range anxiety
+    # -------------------------------------------------------------------------
     "medium_anxiety_indicator": FeatureDefinition(
         function=add_medium_anxiety_indicator,
     ),
@@ -353,10 +421,9 @@ FEATURES = {
         function=add_range_anxiety_score,
     ),
 
+    # -------------------------------------------------------------------------
     # Interactions
-    "income_x_subsidy": FeatureDefinition(
-        function=add_income_x_subsidy,
-    ),
+    # -------------------------------------------------------------------------
     "charging_x_medium_anxiety": FeatureDefinition(
         function=add_charging_x_medium_anxiety,
         requires=(
@@ -385,6 +452,9 @@ FEATURES = {
     "commute_x_cars": FeatureDefinition(
         function=add_commute_x_cars,
     ),
+    "commute_per_car": FeatureDefinition(
+        function=add_commute_per_car,
+    ),
     "environmental_x_subsidy": FeatureDefinition(
         function=add_environmental_x_subsidy,
     ),
@@ -397,6 +467,10 @@ FEATURES = {
     ),
     "charging_x_home_charging": FeatureDefinition(
         function=add_charging_x_home_charging,
+        requires=("charging_total",),
+    ),
+    "environmental_x_charging": FeatureDefinition(
+        function=add_environmental_x_charging,
         requires=("charging_total",),
     ),
 }
@@ -448,6 +522,8 @@ def apply_features(
 
     def apply_feature(feature_name: str) -> None:
         """Recursively apply a feature and its dependencies."""
+        nonlocal df
+
         if feature_name in applied:
             return
 
@@ -464,7 +540,6 @@ def apply_features(
         for dependency in definition.requires:
             apply_feature(dependency)
 
-        df_before = set(df.columns)
         result = definition.function(df)
 
         if not isinstance(result, pd.DataFrame):
@@ -472,12 +547,7 @@ def apply_features(
                 f"Feature '{feature_name}' must return a pandas DataFrame."
             )
 
-        df.update(result)
-
-        # Add columns that did not previously exist.
-        new_columns = set(result.columns) - df_before
-        for column in new_columns:
-            df[column] = result[column]
+        df = result
 
         applied.add(feature_name)
         processing.remove(feature_name)
