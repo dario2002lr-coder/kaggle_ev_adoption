@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -18,17 +19,23 @@ def create_submission(
     ----------
     model
         Fitted classification model.
+
     test : pd.DataFrame
         Test dataset.
+
     sample_submission : pd.DataFrame
         Sample submission provided by the competition.
+
     target : str
         Target column name.
+
     id_column : str, default="id"
         Identifier column in the test dataset.
+
     output_filename : str, default="submission.csv"
         Name of the output submission file.
-    output_dir : Path, default=Path("../data/outputs")
+
+    output_dir : Path, default=Path("../data/submissions")
         Directory where the submission will be saved.
 
     Returns
@@ -36,7 +43,8 @@ def create_submission(
     pd.DataFrame
         Generated submission.
     """
-    X_test = test.drop(columns=[id_column])
+
+    X_test = test.drop(columns=[id_column], errors="ignore")
 
     test_proba = model.predict_proba(X_test)[:, 1]
 

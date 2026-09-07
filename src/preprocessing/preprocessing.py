@@ -62,3 +62,18 @@ def create_one_hot_preprocessor(
         ],
         remainder="passthrough",
     )
+
+def prepare_lightgbm_features(
+    X: DataFrame,
+    categorical_features: list[str],
+) -> DataFrame:
+    """
+    Convert categorical features to pandas category dtype
+    for native LightGBM categorical handling.
+    """
+    X = X.copy()
+
+    for col in categorical_features:
+        X[col] = X[col].astype("category")
+
+    return X
