@@ -9,7 +9,7 @@ def create_submission(
     target: str,
     id_column: str = "id",
     output_filename: str = "submission.csv",
-    output_dir: Path = Path("../data/outputs"),
+    output_dir: Path = Path("../data/submissions"),
 ) -> pd.DataFrame:
     """
     Generate and save a competition submission.
