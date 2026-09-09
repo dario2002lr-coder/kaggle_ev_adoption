@@ -2,7 +2,7 @@ from typing import Tuple
 import pandas as pd
 from pandas import DataFrame
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 def split_features_target(
     train: pd.DataFrame,
@@ -77,3 +77,29 @@ def prepare_lightgbm_features(
         X[col] = X[col].astype("category")
 
     return X
+
+def create_svm_preprocessor(
+    numeric_features: list[str],
+    categorical_features: list[str],
+) -> ColumnTransformer:
+    """
+    Create a preprocessor for SVM models.
+
+    Numerical features are standardized and categorical features
+    are one-hot encoded.
+    """
+    return ColumnTransformer(
+        transformers=[
+            (
+                "numeric",
+                StandardScaler(),
+                numeric_features,
+            ),
+            (
+                "categorical",
+                OneHotEncoder(handle_unknown="ignore"),
+                categorical_features,
+            ),
+        ],
+        remainder="drop",
+    )
